@@ -210,6 +210,9 @@ def perception_step(Rover):
         rock_idx = np.argmin(rock_dist) # minimum distance rock pixel
         rock_xcen = rock_x_world[rock_idx]
         rock_ycen = rock_y_world[rock_idx]
+        # add to rock_list only if coordinates do not already exist in list
+        if (rock_xcen, rock_ycen) not in Rover.rock_list:
+            Rover.rock_list.append((rock_xcen, rock_ycen))
 
         Rover.worldmap[rock_ycen,rock_xcen, 1] = 255 # update the rover world map to be 255 at that center point
         Rover.vision_image[:,:,1] = rock_map * 255 # put those rock pixels onto the vision image

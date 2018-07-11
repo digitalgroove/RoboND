@@ -1,5 +1,12 @@
 import numpy as np
+from math import degrees
+from math import atan2
 
+def angle_to(p1, p2, rotation=0, clockwise=False):
+    angle = degrees(atan2(p2[1] - p1[1], p2[0] - p1[0])) - rotation
+    if not clockwise:
+        angle = -angle
+    return angle
 
 # This is where you can build a decision tree for determining throttle, brake and steer
 # commands based on the output of the perception_step() function
@@ -11,7 +18,35 @@ def decision_step(Rover):
 
     # Example:
     # Check if we have vision data to make decisions with
-    if Rover.nav_angles is not None:
+    if Rover.rock_list:
+        Rover.mode = 'pickup'
+        Rover.rock_angle = angle_to(Rover.pos, Rover.rock_list[0], Rover.yaw, clockwise=True)
+        if not Rover.near_sample:
+            # If navigable terrain looks good
+            # and velocity is below max, then throttle
+            if Rover.vel > 1:
+                # Hit the brakes!
+                Rover.throttle = 0
+                Rover.brake = Rover.brake_set
+            elif Rover.vel < 1:
+                # Set throttle value to throttle setting
+                Rover.throttle = Rover.throttle_set
+            else: # Else coast
+                Rover.throttle = 0
+            Rover.brake = 0
+            # Set steering to average angle clipped to the range +/- 15
+            Rover.steer = np.clip(np.mean(Rover.rock_angle * 180/np.pi), -15, 15)
+        # If it is near sample go to 'stop' mode
+        else:
+            # Set mode to "stop" and hit the brakes!
+            Rover.throttle = 0
+            # Set brake to stored brake value
+            Rover.brake = Rover.brake_set
+            Rover.steer = np.clip(np.mean(Rover.rock_angle * 180/np.pi), -15, 15)
+
+
+
+    elif Rover.nav_angles is not None:
         # Check for Rover.mode status
         if Rover.mode == 'forward':
             # Check the extent of navigable terrain
@@ -70,5 +105,11 @@ def decision_step(Rover):
     # If in a state where want to pickup a rock send pickup command
     if Rover.near_sample and Rover.vel == 0 and not Rover.picking_up:
         Rover.send_pickup = True
+        Rover.mode = 'forward'
+        Rover.rock_list = []
+    elif Rover.near_sample and Rover.vel == 0 and Rover.picking_up:
+        Rover.throttle = 0
+        Rover.brake = Rover.brake_set
+        Rover.steer = 0
 
     return Rover
