@@ -211,8 +211,26 @@ def perception_step(Rover):
         rock_xcen = rock_x_world[rock_idx]
         rock_ycen = rock_y_world[rock_idx]
         # add to rock_list only if coordinates do not already exist in list
-        if (rock_xcen, rock_ycen) not in Rover.rock_list:
+        if not any(Rover.rock_list):
+            #if list is empty
             Rover.rock_list.append((rock_xcen, rock_ycen))
+        else:
+            for idx in range(len(Rover.rock_list)):
+                test_rock_x = Rover.rock_list[idx][0]
+                test_rock_y = Rover.rock_list[idx][1]
+                rock_sample_dists = np.sqrt((test_rock_x - rock_xcen)**2 + \
+                                            (test_rock_y - rock_ycen)**2)
+                # Check if rocks were detected within a distance of known rock positions
+                if rock_sample_dists < 5:
+                    add_candidate = False
+                    break
+                else:
+                    add_candidate = True
+            if add_candidate:
+                Rover.rock_list.append((rock_xcen, rock_ycen))
+
+        #if (rock_xcen, rock_ycen) not in Rover.rock_list:
+        #    Rover.rock_list.append((rock_xcen, rock_ycen))
 
         Rover.worldmap[rock_ycen,rock_xcen, 1] = 255 # update the rover world map to be 255 at that center point
         Rover.vision_image[:,:,1] = rock_map * 255 # put those rock pixels onto the vision image
